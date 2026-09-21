@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scene Matters Spatial CMS</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gutter: 1.5rem;
+      --font-display: "Helvetica Neue", Arial, sans-serif; 
+      --font-body: 'Inter', sans-serif;
+    }
+    
+    body { font-family: var(--font-body); background: #eaeaea; color: #111; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;}
+    h1, h2, h3, p { margin-top: 0; }
+    button { background: #111; color: #fff; border: none; padding: 0.5rem 1rem; cursor: pointer; font-weight: 600; border-radius: 4px; transition: background 0.2s;}
+    button:hover { background: #333; }
+    .btn-success { background: #1e7e34; padding: 0.6rem 1.2rem; font-size: 0.85rem;}
+    .btn-danger { background: #c5221f; padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 3px;}
+    .btn-secondary { background: #fff; color: #111; border: 1px solid #ccc; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
+    .btn-secondary:hover { background: #f4f4f4; }
+    
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 0.3rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em;}
+    textarea, select, input { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-family: var(--font-body); font-size: 0.85rem; box-sizing: border-box; background: #fff;}
+    
+    /* --- TOP BAR --- */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background: #111; color: #fff; padding: 0 1.5rem; height: 60px; z-index: 1000; position: sticky; top: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.5);}
+    .top-bar h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0.05em; font-weight: 600; display: flex; align-items: center; gap: 1rem;}
+    
+    .view-tabs { display: flex; height: 100%; }
+    .view-tab { background: transparent; color: #888; border: none; font-size: 0.9rem; font-weight: 600; padding: 0 1.5rem; height: 100%; border-radius: 0; cursor: pointer; transition: color 0.2s; }
+    .view-tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .view-tab.active { color: #fff; background: rgba(255,255,255,0.1); border-bottom: 3px solid #fff; }
+
+    /* --- VIEW 1: PROJECTS DATABASE --- */
+    .db-view { flex: 1; padding: 3rem 2rem; background: #f4f4f4; box-sizing: border-box;}
+    .db-container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .card { border: 1px solid #e0e0e0; background: #fafafa; border-radius: 4px; overflow: hidden; margin-bottom: 1rem;}
+    .card-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: #eaeaea; cursor: pointer; border-bottom: 1px solid transparent;}
+    .card-header.open { border-bottom: 1px solid #dcdcdc; }
+    .card-body { padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .transfer-ui { display: flex; gap: 1rem; align-items: stretch; }
+    .transfer-col { flex: 1; border: 1px solid #dcdcdc; border-radius: 4px; background: #fff; display: flex; flex-direction: column; overflow: hidden;}
+    .transfer-head { background: #f0f0f0; padding: 0.5rem; font-size: 0.7rem; font-weight: 700; border-bottom: 1px solid #dcdcdc; text-transform: uppercase; color: #666;}
+    .transfer-list { flex: 1; min-height: 120px; max-height: 250px; overflow-y: auto; padding: 0.5rem; list-style: none; margin: 0; display: flex; flex-direction: column; gap: 4px;}
+    .transfer-item { display: flex; justify-content: space-between; align-items: center; background: #f8f8f8; border: 1px solid #eaeaea; padding: 0.4rem 0.5rem; border-radius: 4px; font-size: 0.75rem;}
+
+    /* --- VIEW 2: SPATIAL CANVAS --- */
+    .flow-view { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3rem 2rem; background: #dcdcdc; box-sizing: border-box;}
+    .canvas-container { width: 100%; max-width: 1300px; background: #f7f7f7; min-height: 80vh; padding: 4rem 3rem; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-radius: 6px; box-sizing: border-box;}
+    
+    .canvas-toolbar { display: flex; gap: 0.5rem; background: #1a1a1a; padding: 0.75rem 1.25rem; border-radius: 6px; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: sticky; top: 80px; z-index: 50; width: max-content; margin: 0 auto 3rem auto; flex-wrap: wrap;}
+    .canvas-toolbar.bottom { position: relative; top: 0; margin: 3rem auto 0 auto; }
+    
+    .icon-btn { background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; transition: all 0.1s;}
+    .icon-btn:hover:not(:disabled) { background: #444; border-color: #888;}
+    .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    
+    .icon-group { display: flex; gap: 3px; background: #222; padding: 3px; border-radius: 4px; border: 1px solid #444; align-items: center;}
+    .val-display { background: #111; color: #fff; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0 0.6rem; height: 24px;}
+    .v-divider { width: 1px; height: 20px; background: #444; margin: 0 0.5rem; }
+
+    /* --- CLEAN ARCHITECTURAL ROW CARD --- */
+    .spatial-row-card { 
+      position: relative; 
+      border: 1px solid #d0d0d0; 
+      background: #fff; 
+      border-radius: 6px; 
+      padding: 1.5rem; 
+      margin-bottom: 2rem; 
+      box-sizing: border-box; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .spatial-row-card.dragging { opacity: 0.4; transform: scale(0.98); z-index: 100;}
+
+    /* Row Header Toolbar (Always Visible, Cleanly Docked) */
+    .row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0f0f0;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      border: 1px solid #e0e0e0;
+    }
+
+    .spatial-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gutter); width: 100%; align-items: stretch;}
+
+    /* --- GRID ITEMS --- */
+    .grid-item { position: relative; display: flex; flex-direction: column; align-items: stretch; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 1rem;}
+    .grid-item.dragging { opacity: 0.4; transform: scale(0.95); z-index: 60;}
+    
+    .item-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #eaeaea;
+      padding: 0.3rem 0.6rem;
+      border-radius: 3px;
+      margin-bottom: 0.75rem;
+      border: 1px solid #d0d0d0;
+    }
+
+    .text-box { width: 100%; min-height: 120px; border: 1px solid #ccc; background: #fff; font-family: var(--font-body); font-size: 0.85rem; line-height: 1.6; color: #111; outline: none; padding: 0.75rem; resize: none; overflow: hidden; box-sizing: border-box; border-radius: 4px;}
+    .text-box:focus { border-color: #111; box-shadow: 0 0 0 1px #111;}
+    
+    .media-box { background: #e8e8e8; width: 100%; height: 100%; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; text-align: center; border: 1px solid #d0d0d0; border-radius: 4px;}
+    .media-select { background: #fff; border: 1px solid #ccc; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; width: 100%; text-align: center; text-transform: uppercase; margin-bottom: 0.5rem;}
+    .media-input { background: #fff; border: 1px solid #ccc; padding: 0.3rem; font-size: 0.7rem; width: 100%; margin-bottom: 0.3rem;}
+    
+    .media-scaler-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      background: #dfdfdf;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      border: 1px solid #ccc;
+    }
+
+    .extend-input-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0f0f0;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #555;
+      border: 1px solid #e0e0e0;
+    }
+    .extend-input { width: 50px; text-align: center; font-size: 0.75rem; font-weight: bold; background: #fff; color: #111; border: 1px solid #ccc; border-radius: 3px; padding: 0.2rem;}
+
+    .spacer-box { background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px); border: 1px dashed #ccc; width: 100%; height: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #777; font-weight: 700; text-transform: uppercase; border-radius: 4px;}
+
+    /* Section Divider */
+    .section-divider-wrapper {
+      position: relative;
+      border: 1px dashed #aaa;
+      background: #f4f4f4;
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .section-divider-line { flex: 1; height: 1px; background: #888; border-style: dashed; margin: 0 1rem; }
+
+    .kicker-box { font-family: var(--font-display); font-size: 1.25rem; border: 1px solid #ccc; outline: none; width: 100%; padding: 1rem; background: #fff; resize: none; overflow: hidden; border-radius: 4px;}
+    .headline-box { font-family: var(--font-display); font-weight: 700; font-size: 2.5rem; border: 1px solid #ccc; outline: none; width: 100%; padding: 1rem; background: #fff; resize: none; overflow: hidden; border-radius: 4px;}
+    .typology-box { font-family: var(--font-display); font-size: 3rem; border: 1px solid #ccc; outline: none; width: 100%; padding: 1rem; background: #fff; border-bottom: 1px solid #ccc; resize: none; overflow: hidden; border-radius: 4px;}
+
+    .empty-row-msg { grid-column: span 6; padding: 3rem; text-align: center; color: #888; font-size: 0.85rem; border: 1px dashed #ccc; background: #fdfdfd; border-radius: 4px;}
+  </style>
+</head>
+<body>
+
+<div id="app" style="display: contents;">
+  
+  <div class="top-bar">
+    <h2>Scene Matters Spatial CMS <span v-if="currentFileName" style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 400; margin-left: 1rem;">{{ currentFileName }}</span></h2>
+    <div class="view-tabs">
+      <button class="view-tab" :class="{ active: currentView === 'projects' }" @click="currentView = 'projects'">1. Project Database</button>
+      <button class="view-tab" :class="{ active: currentView === 'pageflow' }" @click="currentView = 'pageflow'">2. Spatial Canvas</button>
+    </div>
+    <div class="file-actions">
+      <button class="btn-danger btn-small" @click="resetBuilder">Reset</button>
+      <button class="btn-secondary btn-small" @click="importFromFile">Open .js</button>
+      <button class="btn-secondary btn-small" @click="exportNewFile">Export .js</button>
+      <button class="btn-success btn-small" @click="saveFile" :disabled="!fileHandle">Save Data</button>
+    </div>
+  </div>
+
+  <div class="db-view" v-show="currentView === 'projects'">
+    <div class="db-container">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+        <div><h2 style="margin-bottom: 0.5rem;">Project Index</h2><p style="font-size: 0.85rem; color: #666; margin: 0;">Manage core data.</p></div>
+        <label class="btn-success" style="display: inline-block; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; color:#fff; font-weight: 600;">
+          + Sync Images Folder <input type="file" webkitdirectory directory multiple @change="syncImages" style="display:none;" />
+        </label>
+      </div>
+
+      <div v-for="(proj, index) in projects" :key="proj.id" class="card">
+        <div class="card-header" :class="{ open: activeProject === index }" @click="activeProject = activeProject === index ? null : index">
+          <strong style="font-size: 1.1rem;">{{ proj.title || 'Untitled Project' }}</strong>
+          <button class="btn-danger btn-small" @click.stop="removeProject(index)">Remove</button>
+        </div>
+        
+        <div v-show="activeProject === index" class="card-body">
+          <div class="form-group"><label>PROJECT Title (Exact Match)</label><textarea rows="1" v-model="proj.title"></textarea></div>
+          <div class="form-group"><label>Folder Name</label><textarea rows="1" v-model="proj.folder"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>Images</label><textarea rows="2" v-model="proj.images"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>CLIENT / INSTITUTION</label><div v-for="(client, cIdx) in proj.clients" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;"><input type="text" v-model="client.name" placeholder="Client Name" style="flex: 1;"><input type="text" v-model="client.url" placeholder="URL (Optional)" style="flex: 1;"><button class="btn-danger" @click.prevent="removeClient(proj, cIdx)" v-if="proj.clients.length > 1">X</button></div><button class="btn-secondary btn-small" @click.prevent="addClient(proj)">+ Add Client</button></div>
+          <div class="form-group"><label>LOCATION</label><textarea rows="1" v-model="proj.location"></textarea></div>
+          <div class="form-group"><label>YEAR</label><textarea rows="1" v-model="proj.year"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>STATUS</label><textarea rows="1" v-model="proj.status"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>EXHIBITION</label><textarea rows="1" v-model="proj.exhibition"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>MATTERS (DOMAINS)</label><div class="transfer-ui"><div class="transfer-col"><div class="transfer-head">Available</div><ul class="transfer-list"><li class="transfer-item" v-for="d in availableDomains(proj)">{{d}} <button class="btn-success btn-small" @click.prevent="addDomain(proj, d)">+ Add</button></li></ul></div><div class="transfer-col"><div class="transfer-head">Selected</div><ul class="transfer-list"><li class="transfer-item" v-for="(d, i) in proj.domains">{{d}}<div class="transfer-actions"><button class="btn-secondary btn-small" @click.prevent="moveUp(proj.domains, i)">↑</button><button class="btn-secondary btn-small" @click.prevent="moveDown(proj.domains, i)">↓</button><button class="btn-danger btn-small" @click.prevent="proj.domains.splice(i, 1)">x</button></div></li></ul></div></div></div>
+          <div class="form-group" style="grid-column: span 2;"><label>TYPOLOGIES</label><div class="transfer-ui"><div class="transfer-col"><div class="transfer-head">Available</div><ul class="transfer-list"><li class="transfer-item" v-for="t in availableTypologies(proj)">{{t}} <button class="btn-success btn-small" @click.prevent="addTypology(proj, t)">+ Add</button></li></ul></div><div class="transfer-col"><div class="transfer-head">Selected</div><ul class="transfer-list"><li class="transfer-item" v-for="(t, i) in proj.typologies">{{t}}<div class="transfer-actions"><button class="btn-secondary btn-small" @click.prevent="moveUp(proj.typologies, i)">↑</button><button class="btn-secondary btn-small" @click.prevent="moveDown(proj.typologies, i)">↓</button><button class="btn-danger btn-small" @click.prevent="proj.typologies.splice(i, 1)">x</button></div></li></ul></div></div></div>
+          <div class="form-group" style="grid-column: span 2;"><label>PHASES</label><textarea rows="2" v-model="proj.phases" placeholder="Phase 1, Phase 2..."></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>SERVICES</label><div class="transfer-ui"><div class="transfer-col"><div class="transfer-head">Available</div><ul class="transfer-list"><li class="transfer-item" v-for="s in availableServices(proj)">{{s}} <button class="btn-success btn-small" @click.prevent="proj.services.push(s)">+ Add</button></li></ul></div><div class="transfer-col"><div class="transfer-head">Selected</div><ul class="transfer-list"><li class="transfer-item" v-for="(s, i) in proj.services">{{s}}<div class="transfer-actions"><button class="btn-secondary btn-small" @click.prevent="moveUp(proj.services, i)">↑</button><button class="btn-secondary btn-small" @click.prevent="moveDown(proj.services, i)">↓</button><button class="btn-danger btn-small" @click.prevent="proj.services.splice(i, 1)">x</button></div></li></ul></div></div></div>
+          <div class="form-group"><label>PARTNERS</label><textarea rows="3" v-model="proj.partners"></textarea><label style="margin-top: 0.5rem;">As part of</label><textarea rows="1" v-model="proj.asPartOf"></textarea><label style="margin-top: 0.5rem;">URL</label><textarea rows="1" v-model="proj.asPartOfUrl"></textarea></div>
+          <div class="form-group"><label>COLLABORATORS</label><textarea rows="3" v-model="proj.collaborators"></textarea><label style="margin-top: 0.5rem;">With participation of</label><textarea rows="2" v-model="proj.participation"></textarea><label style="margin-top: 0.5rem;">Project team</label><textarea rows="2" v-model="proj.projectTeam"></textarea></div>
+          <div class="form-group" style="grid-column: span 2;"><label>RECOGNITION</label><textarea rows="2" v-model="proj.recognition"></textarea></div>
+        </div>
+      </div>
+      <button @click="addProject" style="width:100%; padding: 1rem; background:#333;">+ ADD PROJECT</button>
+    </div>
+  </div>
+
+  <div class="flow-view" v-show="currentView === 'pageflow'">
+    
+    <div class="canvas-toolbar">
+      <button class="btn-secondary" @click="addBlock('kicker')">+ Kicker</button>
+      <button class="btn-secondary" @click="addBlock('headline')">+ Headline</button>
+      <button class="btn-secondary" @click="addBlock('typology')">+ Typology</button>
+      <button class="btn-secondary" @click="addBlock('section-divider')" style="background:#444; color:#fff; border-color:#555;">+ Section Divider</button>
+      <div class="v-divider" style="height: 24px;"></div>
+      <button class="btn-success" @click="addBlock('spatial-row')">+ ADD SPATIAL ROW</button>
+    </div>
+
+    <div class="canvas-container">
+      
+      <div v-if="blocks.length === 0" style="text-align:center; padding: 4rem; color: #888;">
+        The canvas is empty. Add a Spatial Row to begin.
+      </div>
+
+      <div v-for="(block, bIdx) in blocks" :key="block.id" class="block-wrapper">
+        
+        <div v-if="block.type === 'section-divider'" class="section-divider-wrapper" draggable="true" @dragstart="dragStartBlock(bIdx, $event)" @dragend="dragEndBlock" @dragover.prevent @drop.stop="dropBlock(bIdx)">
+          <span class="drag-handle" title="Drag to reorder">☰</span>
+          <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #555;">Section Divider</span>
+          <div class="section-divider-line"></div>
+          <button class="btn-danger" @click="removeBlock(bIdx)">✕</button>
+        </div>
+
+        <div v-else 
+             class="spatial-row-wrapper"
+             :class="{ dragging: draggedBlockIdx === bIdx }"
+             draggable="true" 
+             @dragstart="dragStartBlock(bIdx, $event)" 
+             @dragend="dragEndBlock" 
+             @dragover.prevent 
+             @drop.stop="dropBlock(bIdx)"
+             :style="{ 
+               paddingTop: `calc(var(--gutter) * ${getMaxExtension(block, 'top')})`, 
+               paddingBottom: `calc(var(--gutter) * ${getMaxExtension(block, 'bottom')})`,
+               marginBottom: `calc(var(--gutter) * ${block.spacerBelow !== undefined ? block.spacerBelow : 2})` 
+             }">
+          
+          <div class="row-header">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span class="drag-handle" title="Drag to reorder row">☰</span>
+              <span style="font-size: 0.7rem; font-weight: 700; color: #333; text-transform: uppercase;">
+                {{ block.type === 'spatial-row' ? 'Spatial Row' : block.type }}
+              </span>
+            </div>
+            
+            <template v-if="block.type === 'spatial-row'">
+              <div style="display:flex; gap:0.5rem;">
+                <button class="icon-btn" @click="addItem(block, 'text')">+ Text Box</button>
+                <button class="icon-btn" @click="addItem(block, 'media')">+ Media Box</button>
+                <button class="icon-btn" style="background:#444;" @click="addItem(block, 'spacer')">+ Spacer</button>
+              </div>
+            </template>
+
+            <button class="btn-danger" @click="removeBlock(bIdx)">✕ Remove Row</button>
+          </div>
+
+          <div v-if="['kicker', 'headline', 'typology', 'typology-standstill'].includes(block.type)">
+            <textarea :class="block.type + '-box'" v-model="block.textRaw" @input="autoResize($event)" placeholder="Type here..."></textarea>
+          </div>
+
+          <div v-if="block.type === 'spatial-row'" class="spatial-grid">
+            
+            <div v-for="(item, iIdx) in block.items" :key="item.id" 
+                 class="grid-item"
+                 :class="{ dragging: draggedItemIdx === iIdx && draggedItemParent === bIdx }"
+                 draggable="true"
+                 @dragstart.stop="dragStartItem(bIdx, iIdx, $event)"
+                 @dragend.prevent="dragEndItem"
+                 @dragover.prevent
+                 @drop.stop="dropItem(bIdx, iIdx)"
+                 :style="{ gridColumn: `span ${item.trackWidth}` }">
+              
+              <div class="item-toolbar">
+                <div style="display:flex; align-items:center; gap:0.3rem;">
+                  <span class="drag-handle" style="font-size: 0.8rem;">☰</span>
+                  <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #555;">{{ item.type }}</span>
+                </div>
+                
+                <template v-if="item.type !== 'text'">
+                  <div class="icon-group">
+                    <button class="icon-btn" @click="item.trackWidth > 1 ? item.trackWidth-- : null" :disabled="item.trackWidth <= 1">➖</button>
+                    <span class="val-display">{{ item.trackWidth * 0.5 }} Col</span>
+                    <button class="icon-btn" @click="item.trackWidth < 6 ? item.trackWidth++ : null" :disabled="item.trackWidth >= 6">➕</button>
+                  </div>
+                </template>
+                <template v-else>
+                  <span style="font-size: 0.65rem; color: #555; font-weight: bold; background: #eee; padding: 0.15rem 0.4rem; border-radius: 3px; border: 1px solid #ccc;">1 Col Wide</span>
+                </template>
+
+                <button class="btn-danger" @click="removeItem(block, iIdx)">✕</button>
+              </div>
+
+              <div v-if="item.type === 'text'" style="width:100%;">
+                <textarea class="text-box" v-model="item.content" @input="autoResize($event)" @blur="cleanText(item)" placeholder="Type paragraph here..."></textarea>
+              </div>
+
+              <div v-if="item.type === 'media'" class="media-container" style="position:relative; width:100%; height:100%;">
+                
+                <div class="extend-input-group">
+                  <span>Extend Top:</span>
+                  <input type="number" step="0.5" class="extend-input" v-model.number="item.extendTop">
+                </div>
+                
+                <div class="media-box" :style="{ minHeight: getRowMinHeight(block) + 'px' }">
+                  <select class="media-select" v-model="item.projectId">
+                    <option value="">-- Manual Project --</option>
+                    <option v-for="p in projects" :value="p.id">{{p.title}}</option>
+                  </select>
+                  <div v-if="!item.projectId" style="display: flex; flex-direction: column; width: 100%; align-items: center;">
+                    <input type="text" class="media-input" v-model="item.folder" placeholder="Folder">
+                    <input type="text" class="media-input" v-model="item.customImages" placeholder="1.jpg, 2.jpg">
+                  </div>
+                  <div class="media-scaler-bar">
+                    <span>Width:</span>
+                    <button class="icon-btn" @click="item.trackWidth > 1 ? item.trackWidth-- : null" :disabled="item.trackWidth <= 1">➖</button>
+                    <span style="font-size:0.7rem; font-weight:bold; padding:0 0.3rem;">{{ item.trackWidth * 0.5 }} Col</span>
+                    <button class="icon-btn" @click="item.trackWidth < 6 ? item.trackWidth++ : null" :disabled="item.trackWidth >= 6">➕</button>
+                  </div>
+                </div>
+
+                <div class="extend-input-group" style="margin-bottom: 0; margin-top: 0.5rem;">
+                  <span>Extend Bottom:</span>
+                  <input type="number" step="0.5" class="extend-input" v-model.number="item.extendBottom">
+                </div>
+
+              </div>
+
+              <div v-if="item.type === 'spacer'" class="spacer-box">
+                Spacer Box
+              </div>
+
+            </div>
+            
+            <div v-if="block.items.length === 0" class="empty-row-msg">
+              Empty Row. Click '+ Text Box' or '+ Media Box' above.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div class="canvas-toolbar bottom">
+      <button class="btn-secondary" @click="addBlock('kicker')">+ Kicker</button>
+      <button class="btn-secondary" @click="addBlock('headline')">+ Headline</button>
+      <button class="btn-secondary" @click="addBlock('typology')">+ Typology</button>
+      <button class="btn-secondary" @click="addBlock('section-divider')" style="background:#444; color:#fff; border-color:#555;">+ Section Divider</button>
+      <div class="v-divider" style="height: 24px;"></div>
+      <button class="btn-success" @click="addBlock('spatial-row')">+ ADD SPATIAL ROW</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const masterPillars = { "Spatial": [ "Spatial planning", "Architectural design", "Exhibition design and scenography", "Installation design", "Visitor experience design", "3D visualisation and walkthrough animations", "Computational design", "Robotic and digital fabrication workflows", "BIM coordination and technical documentation", "Structural and environmental simulation", "Production management", "On-site supervision" ], "Curatorial": [ "Curatorial direction and concept development", "Research and content development", "Exhibition development", "Public programming and audience engagement", "Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Artist development and management", "Artist commissioning", "Open call, jury, and competition curation", "Editorial and publication development" ], "Visual": [ "Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Editorial and publication design", "Information and presentation design", "Campaign design and visual assets", "Bespoke interactive tools and web development", "Content writing and copywriting", "Media relations collateral and press kits" ], "Strategic": [ "Cultural policy and creative economy strategy", "Placemaking strategy", "Institutional strategy and governance frameworks", "Institutional and brand positioning", "Organisational development and operational modeling", "Business development", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning" ] };
+  const matrixData = { "Placemaking, Cultural Districts and Masterplans": { "Spatial": ["Spatial planning", "Architectural design", "Visitor experience design", "3D visualisation and walkthrough animations", "BIM coordination and technical documentation"], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Public programming and audience engagement","Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Open call, jury, and competition curation"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Campaign design and visual assets", "Media relations collateral and press kits"], "Strategic": ["Cultural policy and creative economy strategy", "Placemaking strategy", "Institutional strategy and governance frameworks", "Institutional and brand positioning", "Organisational development and operational modeling", "Business development", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Cultural and Civic Architecture": { "Spatial": ["Spatial planning", "Architectural design", "Visitor experience design", "3D visualisation and walkthrough animations", "Computational design", "Robotic and digital fabrication workflows", "BIM coordination and technical documentation", "Structural and environmental simulation", "On-site supervision"], "Curatorial": ["Curatorial direction and concept development", "Public programming and audience engagement", "Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Open call, jury, and competition curation"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Information and presentation design"], "Strategic": ["Cultural policy and creative economy strategy", "Placemaking strategy", "Institutional strategy and governance frameworks", "Institutional and brand positioning", "Organisational development and operational modeling", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy"] }, "Pavilions and Public Space Installations": { "Spatial": ["Spatial planning", "Architectural design", "Installation design", "Visitor experience design", "3D visualisation and walkthrough animations", "Computational design", "Robotic and digital fabrication workflows", "BIM coordination and technical documentation", "Structural and environmental simulation", "Production management", "On-site supervision"], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Exhibition development", "Public programming and audience engagement", "Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Artist commissioning", "Open call, jury, and competition curation", "Editorial and publication development"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Editorial and publication design", "Information and presentation design", "Campaign design and visual assets", "Media relations collateral and press kits"], "Strategic": ["Placemaking strategy", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Exhibitions and Scenography": { "Spatial": ["Spatial planning", "Architectural design", "Exhibition design and scenography", "Visitor experience design", "3D visualisation and walkthrough animations", "BIM coordination and technical documentation", "Production management", "On-site supervision"], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Exhibition development", "Public programming and audience engagement", "Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Artist development and management", "Artist commissioning", "Open call, jury, and competition curation", "Editorial and publication development"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Editorial and publication design", "Information and presentation design", "Campaign design and visual assets", "Content writing and copywriting", "Media relations collateral and press kits"], "Strategic": ["Institutional strategy and governance frameworks", "Organisational development and operational modeling", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Biennales, Festivals and Public Programmes": { "Spatial": ["Spatial planning", "Architectural design", "Exhibition design and scenography", "Installation design", "Visitor experience design", "3D visualisation and walkthrough animations", "BIM coordination and technical documentation", "Production management", "On-site supervision"], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Exhibition development", "Public programming and audience engagement", "Curation and cultural experiences design", "Interpretive planning and visitor journey curation", "Artist development and management", "Artist commissioning", "Open call, jury, and competition curation", "Editorial and publication development"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Editorial and publication design", "Information and presentation design", "Campaign design and visual assets", "Bespoke interactive tools and web development", "Content writing and copywriting", "Media relations collateral and press kits"], "Strategic": ["Cultural policy and creative economy strategy", "Placemaking strategy", "Institutional strategy and governance frameworks", "Institutional and brand positioning", "Organisational development and operational modeling", "Business development", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Institutional Strategy and Frameworks": { "Spatial": [], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Public programming and audience engagement", "Curation and cultural experiences design", "Artist development and management", "Artist commissioning", "Open call, jury, and competition curation"], "Visual": [], "Strategic": ["Cultural policy and creative economy strategy", "Placemaking strategy", "Institutional strategy and governance frameworks", "Institutional and brand positioning", "Organisational development and operational modeling", "Business development", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Audience and visitor strategy", "Legacy planning", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Artist Management and Practice Development": { "Spatial": [], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Exhibition development", "Public programming and audience engagement", "Curation and cultural experiences design", "Artist development and management", "Artist commissioning", "Open call, jury, and competition curation", "Editorial and publication development"], "Visual": ["Branding and visual identity design", "Editorial and publication design", "Information and presentation design", "Content writing and copywriting", "Media relations collateral and press kits"], "Strategic": ["Business development", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Client representation", "Logistics management and site operations", "International partnerships and cultural diplomacy", "Grant acquisition and fundraising strategy", "Communication strategy and dissemination planning"] }, "Visual Identities, Communications, and Editorial": { "Spatial": ["Production management", "On-site supervision"], "Curatorial": ["Curatorial direction and concept development", "Research and content development", "Editorial and publication development"], "Visual": ["Branding and visual identity design", "Graphic and visual storytelling", "Environmental graphics and wayfinding systems", "Editorial and publication design", "Information and presentation design", "Campaign design and visual assets", "Bespoke interactive tools and web development", "Content writing and copywriting", "Media relations collateral and press kits"], "Strategic": ["Cultural policy and creative economy strategy", "Institutional and brand positioning", "Cost, timeline and feasibility studies", "Ecosystem mapping and stakeholder alignment", "Client representation", "Communication strategy and dissemination planning"] } };
+  const MASTER_DOMAINS = Object.keys(masterPillars); const MASTER_TYPOLOGIES = Object.keys(matrixData); const MASTER_SERVICES = [...new Set(Object.values(masterPillars).flat())].sort();
+
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      return { 
+        currentView: 'projects',
+        fileHandle: null, currentFileName: '', 
+        activeProject: null, draggedBlockIdx: null,
+        draggedItemIdx: null, draggedItemParent: null,
+        projects: [], blocks: [] 
+      }
+    },
+    mounted() {
+      this.$nextTick(() => { this.triggerGlobalResize(); });
+    },
+    computed: {
+      generatedJSON() {
+        let textAppearanceOrder = [];
+        let carouselUsedProjects = [];
+
+        this.blocks.forEach(b => {
+          if (['headline', 'typology', 'kicker'].includes(b.type) && b.textRaw) {
+             let textRaw = b.textRaw; let found = [];
+             this.projects.forEach(p => { if (p.title && textRaw.includes(p.title)) found.push({ id: p.id, index: textRaw.indexOf(p.title) }); });
+             found.sort((a,x) => a.index - x.index);
+             found.forEach(f => { if (!textAppearanceOrder.includes(f.id)) textAppearanceOrder.push(f.id); });
+          }
+          if (b.type === 'spatial-row') {
+             b.items.forEach(item => {
+               if (item.type === 'text' && item.content) {
+                 let textRaw = item.content; let found = [];
+                 this.projects.forEach(p => { if (p.title && textRaw.includes(p.title)) found.push({ id: p.id, index: textRaw.indexOf(p.title) }); });
+                 found.sort((a,x) => a.index - x.index);
+                 found.forEach(f => { if (!textAppearanceOrder.includes(f.id)) textAppearanceOrder.push(f.id); });
+               }
+               if (item.type === 'media' && item.projectId) {
+                 if (!carouselUsedProjects.includes(item.projectId)) carouselUsedProjects.push(item.projectId);
+               }
+             });
+          }
+        });
+
+        let appearanceOrder = [...textAppearanceOrder];
+        carouselUsedProjects.forEach(id => { if (!appearanceOrder.includes(id)) appearanceOrder.push(id); });
+
+        let exportedProjects = [];
+        appearanceOrder.forEach(projId => { const p = this.projects.find(proj => proj.id === projId); if (p) exportedProjects.push(p); });
+        this.projects.forEach(p => { if (!appearanceOrder.includes(p.id)) exportedProjects.push(p); });
+
+        let validIndexCounter = 1;
+        const projectIndex = exportedProjects.map((p) => {
+          return {
+            id: p.id, number: appearanceOrder.includes(p.id) ? `[${String(validIndexCounter++).padStart(2, '0')}]` : '',
+            title: p.title, folder: p.folder, images: (p.images||'').split(',').map(s => s.trim()).filter(Boolean).map(img => `Images/${p.folder}/${img}`),
+            clients: p.clients || [], location: p.location, year: p.year, status: p.status, exhibition: p.exhibition || '', domains: p.domains || [], typologies: p.typologies || [], phases: (p.phases||'').split(',').map(s => s.trim()).filter(Boolean), services: p.services || [], partners: p.partners || '', asPartOf: p.asPartOf || '', asPartOfUrl: p.asPartOfUrl || '', projectTeam: p.projectTeam || '', collaborators: p.collaborators || '', participation: p.participation || '', recognition: p.recognition || ''
+          }
+        });
+
+        const parsedBlocks = this.blocks.map((b, bIdx) => {
+          let blockData = { id: `block-${Date.now()}-${bIdx}`, type: b.type, spacerBelow: b.spacerBelow !== undefined ? b.spacerBelow : 2 };
+          if (b.type === 'section-divider') {
+             return blockData;
+          }
+          if (['kicker', 'headline', 'typology', 'typology-standstill'].includes(b.type)) { 
+            blockData.text = b.textRaw; 
+          } 
+          else if (b.type === 'spatial-row') {
+             blockData.items = b.items.map(item => {
+                let parsedItem = { type: item.type, trackWidth: item.trackWidth || 2 };
+                if (item.type === 'text') {
+                   let raw = item.content || ""; let detected = this.getDetectedProjects(raw);
+                   detected.forEach(p => { if(!p.title) return; raw = raw.replace(new RegExp(`\\b${p.title}\\b`, 'g'), `<strong class='project-trigger' data-id='${p.id}'>${p.title}</strong>`); });
+                   if (detected.length > 0) parsedItem.primaryProject = detected[0].id;
+                   parsedItem.text = raw.split('\n\n').filter(x => x.trim() !== '');
+                } 
+                else if (item.type === 'media') {
+                   parsedItem.extendTop = item.extendTop || 0;
+                   parsedItem.extendBottom = item.extendBottom || 0;
+                   if(item.projectId) {
+                      const p = projectIndex.find(pi => pi.id === item.projectId);
+                      if(p) { parsedItem.primaryProject = p.id; parsedItem.projectId = item.projectId; parsedItem.tag = p.number; parsedItem.images = p.images; }
+                   } else if (item.folder && item.customImages) {
+                      parsedItem.folder = item.folder; parsedItem.customImages = item.customImages;
+                      parsedItem.images = item.customImages.split(',').map(s => s.trim()).filter(Boolean).map(img => `Images/${item.folder}/${img}`);
+                   } else if (item.customImages) {
+                      parsedItem.customImages = item.customImages; parsedItem.images = item.customImages.split(',').map(s => s.trim()).filter(Boolean);
+                   }
+                }
+                return parsedItem;
+             });
+          }
+          return blockData;
+        });
+
+        const finalObj = { navigation: [{ label: "ABOUT", link: "#about" }, { label: "SERVICES", link: "services.html" }, { label: "PROJECTS", link: "#content-feed", active: true }, { label: "CONTACT", link: "#contact" }], projectIndex: projectIndex, blocks: parsedBlocks };
+        return `const SITE_CONTENT = ${JSON.stringify(finalObj, null, 2)};`;
+      }
+    },
+    methods: {
+      addProject() {
+        this.projects.push({
+          id: 'proj-' + Date.now(),
+          title: '',
+          folder: '',
+          images: '',
+          clients: [{name: '', url: ''}],
+          location: '',
+          year: '',
+          status: '',
+          exhibition: '',
+          domains: [],
+          typologies: [],
+          phases: '',
+          services: [],
+          partners: '',
+          asPartOf: '',
+          asPartOfUrl: '',
+          projectTeam: '',
+          collaborators: '',
+          participation: '',
+          recognition: ''
+        });
+        this.activeProject = this.projects.length - 1;
+      },
+
+      removeProject(index) {
+        if (confirm("Are you sure you want to remove this project?")) {
+          this.projects.splice(index, 1);
+          if (this.activeProject === index) {
+            this.activeProject = null;
+          }
+        }
+      },
+
+      autoResize(event) {
+        event.target.style.height = 'auto';
+        event.target.style.height = event.target.scrollHeight + 'px';
+      },
+      triggerGlobalResize() {
+        document.querySelectorAll('.text-box, .kicker-box, .headline-box, .typology-box').forEach(el => {
+          el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
+        });
+      },
+      cleanText(item) {
+        if (item.content) item.content = item.content.trim();
+        if (item.textRaw) item.textRaw = item.textRaw.trim();
+        this.$nextTick(() => { this.triggerGlobalResize(); });
+      },
+      getMaxExtension(block, pos) {
+        if (!block.items) return 0;
+        let max = 0;
+        block.items.forEach(item => {
+           if (pos === 'top' && item.extendTop > max) max = item.extendTop;
+           if (pos === 'bottom' && item.extendBottom > max) max = item.extendBottom;
+        });
+        return max;
+      },
+      getRowMinHeight(block) {
+        // Estimates height to make grey boxes scale nicely in builder
+        return 140;
+      },
+
+      addBlock(type) {
+        let newBlock = { id: `block-${Date.now()}`, type: type, spacerBelow: 2, textRaw: '' };
+        if (type === 'spatial-row') {
+          newBlock.items = [
+            { id: `item-${Date.now()}-1`, type: 'text', trackWidth: 2, content: "" },
+            { id: `item-${Date.now()}-2`, type: 'media', trackWidth: 4, extendTop: 0, extendBottom: 0, projectId: "", folder: "", customImages: "" }
+          ];
+        }
+        this.blocks.push(newBlock);
+        this.$nextTick(() => { this.triggerGlobalResize(); });
+      },
+      removeBlock(idx) { this.blocks.splice(idx, 1); },
+      
+      addItem(block, type) {
+        block.items.push({ 
+          id: `item-${Date.now()}`, type: type, trackWidth: type === 'text' ? 2 : 4,
+          content: "", projectId: "", folder: "", customImages: "", extendTop: 0, extendBottom: 0
+        });
+        this.$nextTick(() => { this.triggerGlobalResize(); });
+      },
+      removeItem(block, idx) { block.items.splice(idx, 1); },
+
+      dragStartBlock(index, event) { this.draggedBlockIdx = index; event.dataTransfer.effectAllowed = 'move'; },
+      dragEndBlock() { this.draggedBlockIdx = null; },
+      dropBlock(index) { 
+        if (this.draggedBlockIdx !== null && this.draggedBlockIdx !== index) { 
+          const moved = this.blocks.splice(this.draggedBlockIdx, 1)[0]; 
+          this.blocks.splice(index, 0, moved); 
+        } 
+        this.draggedBlockIdx = null; 
+      },
+
+      dragStartItem(bIdx, iIdx, event) { this.draggedItemParent = bIdx; this.draggedItemIdx = iIdx; event.dataTransfer.effectAllowed = 'move'; },
+      dragEndItem() { this.draggedItemParent = null; this.draggedItemIdx = null; },
+      dropItem(bIdx, iIdx) {
+        if (this.draggedItemParent === bIdx && this.draggedItemIdx !== null && this.draggedItemIdx !== iIdx) {
+          const moved = this.blocks[bIdx].items.splice(this.draggedItemIdx, 1)[0];
+          this.blocks[bIdx].items.splice(iIdx, 0, moved);
+        }
+        this.draggedItemParent = null; this.draggedItemIdx = null;
+      },
+
+      getDetectedProjects(text) { if(!text) return []; return this.projects.filter(p => p.title && new RegExp(`\\b${p.title}\\b`).test(text)); },
+      resetBuilder() { if(confirm("Are you sure you want to clear the builder?")) { this.projects = []; this.blocks = []; this.fileHandle = null; this.currentFileName = ''; } },
+      availableDomains(proj) { return MASTER_DOMAINS.filter(d => !proj.domains.includes(d)); },
+      availableTypologies(proj) { return MASTER_TYPOLOGIES.filter(t => !proj.typologies.includes(t)); },
+      availableServices(proj) { return MASTER_SERVICES.filter(s => !proj.services.includes(s)); },
+      moveUp(arr, idx) { if(idx > 0) { const temp = arr[idx]; arr[idx] = arr[idx-1]; arr[idx-1] = temp; } },
+      moveDown(arr, idx) { if(idx < arr.length-1) { const temp = arr[idx]; arr[idx] = arr[idx+1]; arr[idx+1] = temp; } },
+      addDomain(proj, dom) { if (!proj.domains.includes(dom)) proj.domains.push(dom); proj.typologies.forEach(typ => { if (matrixData[typ] && matrixData[typ][dom]) { matrixData[typ][dom].forEach(srv => { if (!proj.services.includes(srv)) proj.services.push(srv); }); } }); },
+      addTypology(proj, typ) { if (!proj.typologies.includes(typ)) proj.typologies.push(typ); if (matrixData[typ]) { proj.domains.forEach(dom => { if (matrixData[typ][dom]) { matrixData[typ][dom].forEach(srv => { if (!proj.services.includes(srv)) proj.services.push(srv); }); } }); } },
+      formatProjectData(p) { let mappedClients = [{name: '', url: ''}]; if (Array.isArray(p.clients) && p.clients.length > 0) mappedClients = p.clients; return { id: p.id || 'proj-' + Date.now(), title: p.title || '', folder: p.folder || '', images: Array.isArray(p.images) ? p.images.map(img => img.split('/').pop()).join(', ') : (p.images || ''), clients: mappedClients, location: p.location || '', year: p.year || '', status: p.status || '', exhibition: p.exhibition || '', domains: p.domains || [], typologies: p.typologies || [], phases: Array.isArray(p.phases) ? p.phases.join(', ') : (p.phases || ''), services: p.services || [], partners: p.partners || '', asPartOf: p.asPartOf || '', asPartOfUrl: p.asPartOfUrl || '', projectTeam: p.projectTeam || '', collaborators: p.collaborators || '', participation: p.participation || '', recognition: p.recognition || '' }; },
+      exportNewFile() { const blob = new Blob([this.generatedJSON], { type: 'text/javascript' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = this.currentFileName || 'content_projects.js'; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); },
+      
+      importFromFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.js';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.currentFileName = file.name;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const jsonString = event.target.result.replace('const SITE_CONTENT = ', '').replace(/;$/, '').trim();
+              const data = JSON.parse(jsonString);
+              if (data.projectIndex) this.projects = data.projectIndex.map(p => this.formatProjectData(p));
+              if (data.blocks) {
+                this.blocks = data.blocks.map(b => {
+                  let uiBlock = { id: b.id || `block-${Date.now()}`, type: b.type, spacerBelow: b.spacerBelow !== undefined ? b.spacerBelow : 2 };
+                  if (b.type === 'section-divider') return uiBlock;
+                  if (['headline', 'kicker', 'typology'].includes(b.type)) { uiBlock.textRaw = b.text || ""; } 
+                  else if (b.type === 'spatial-row') {
+                     if (b.items) {
+                       uiBlock.items = b.items.map((item, i) => {
+                         let uiItem = { id: `item-${Date.now()}-${i}`, type: item.type, trackWidth: item.trackWidth || 2 };
+                         if (item.type === 'text') { uiItem.content = (item.text || []).join('\n\n').replace(/<strong class='project-trigger' data-id='[^']+'>/g, '').replace(/<\/strong>/g, '').trim(); }
+                         if (item.type === 'media') { 
+                           uiItem.extendTop = item.extendTop || 0; 
+                           uiItem.extendBottom = item.extendBottom || 0; 
+                           uiItem.projectId = item.projectId || ''; 
+                           uiItem.folder = item.folder || ''; 
+                           uiItem.customImages = item.customImages || (item.images ? item.images.join(', ') : ''); 
+                         }
+                         return uiItem;
+                       });
+                     }
+                  } else { uiBlock.type = 'spatial-row'; uiBlock.items = [{ id: `item-${Date.now()}`, type: 'text', trackWidth: 6, content: "[Legacy format converted]" }]; }
+                  return uiBlock;
+                });
+                this.$nextTick(() => { this.triggerGlobalResize(); });
+              }
+              this.fileHandle = true; // Enables the save button
+            } catch (e) { alert("Could not parse file."); }
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+      },
+
+      async saveFile() {
+        this.exportNewFile();
+        alert("File downloaded! Please replace the old file in your folder.");
+      },
+
+      addClient(proj) { proj.clients.push({name: '', url: ''}); }, removeClient(proj, cIdx) { proj.clients.splice(cIdx, 1); },
+      syncImages(event) {
+        const files = event.target.files;
+        this.projects.forEach(p => {
+          if(!p.folder) return; let matchedFiles = [];
+          for(let i=0; i<files.length; i++) {
+            let path = files[i].webkitRelativePath || files[i].name;
+            if (path.includes(`/${p.folder}/`) || path.startsWith(`${p.folder}/`)) { if (path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { let fName = files[i].name; if(!matchedFiles.includes(fName)) matchedFiles.push(fName); } }
+          }
+          if(matchedFiles.length > 0) { matchedFiles.sort((a,b) => a.localeCompare(b, undefined, {numeric: true})); p.images = matchedFiles.join(', '); }
+        }); alert("Image sync completed successfully!");
+      }
+    }
+  }).mount('#app')
+</script>
+</body>
+</html>
